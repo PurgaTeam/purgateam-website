@@ -7533,6 +7533,61 @@ footer {
     letter-spacing: 0.18em;
 }
 
+.footer__animation-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+    color: #f2e5eb;
+    cursor: pointer;
+    font-family: 'Afacad Flux', sans-serif;
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.footer__animation-control input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.footer__animation-track {
+    position: relative;
+    box-sizing: border-box;
+    width: 50px;
+    height: 30px;
+    border: 2px solid #f2e5eb;
+    border-radius: 0;
+    background: #5d3b49;
+    transition: background-color 180ms ease;
+}
+
+.footer__animation-track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 0;
+    background: #f2e5eb;
+    transition: transform 180ms ease;
+}
+
+.footer__animation-control input:checked + .footer__animation-track {
+    background: #dc1747;
+}
+
+.footer__animation-control input:checked + .footer__animation-track::after {
+    transform: translateX(20px);
+}
+
+.footer__animation-control input:focus-visible + .footer__animation-track {
+    outline: 3px solid #ff8aaa;
+    outline-offset: 4px;
+}
+
 .footer__inquiries {
     display: flex;
     width: min(520px, 90vw);
@@ -8484,5 +8539,126 @@ section p {
     .newsletter-carousel__arrow span {
         display: inline-block;
         transform: rotate(90deg);
+    }
+}
+
+/* Project detail pages keep their own motion; the other pages honor the switch. */
+html.animations-off body:not(.project-detail-page),
+html.animations-off body:not(.project-detail-page) *,
+html.animations-off body:not(.project-detail-page) *::before,
+html.animations-off body:not(.project-detail-page) *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+}
+
+html.animations-off .home-page .ambition-showcase__background.is-zooming {
+    animation: none !important;
+}
+
+html.animations-off .home-page .ambition-showcase {
+    min-height: max(540px, calc(100svh - 320px));
+    transition: none;
+}
+
+html.animations-off .home-page .ambition-showcase__link {
+    transform: translateY(-90px);
+}
+
+html.animations-off .home-page .ambition-showcase__link:hover,
+html.animations-off .home-page .ambition-showcase__link:focus-visible {
+    transform: translateY(-90px) scale(1.04);
+}
+
+html.animations-off .home-page .ambition-showcase h1 {
+    transform: translateY(20px);
+    transition: none;
+}
+
+html.animations-off .home-page .ambition-showcase__description,
+html.animations-off .home-page .ambition-showcase:hover .ambition-showcase__description,
+html.animations-off .home-page .ambition-showcase:focus-within .ambition-showcase__description {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 6px);
+    transition: none;
+}
+
+html.animations-off .home-page .gradient-section,
+html.animations-off .home-page.home-at-top .gradient-section {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: none;
+}
+
+html.animations-off .home-page .feed-card-reveal,
+html.animations-off .home-page .team-section.has-scroll-reveal .team-section__inner {
+    transition: none;
+}
+
+html.animations-off .home-page .page-secondary-header.is-content-hidden .secondary-header__logo {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+}
+
+html.animations-off .home-page .page-secondary-header.is-content-hidden .secondary-header__socials {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+html.animations-off .home-page .home-feed__grid::before,
+html.animations-off .home-page .feed-card-reveal,
+html.animations-off .home-page .team-section.has-scroll-reveal .team-section__inner {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+}
+
+html.animations-off .home-page .ambition-showcase__background.is-active {
+    opacity: 1;
+}
+
+html.animations-off .projects-page .projects-main {
+    --projects-intro-height: clamp(440px, 54vh, 600px);
+}
+
+html.animations-off .projects-page .project-carousel {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+html.animations-off .projects-page .page-secondary-header.is-content-hidden .secondary-header__logo {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+}
+
+html.animations-off .projects-page .page-secondary-header.is-content-hidden .secondary-header__socials {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+@media (max-width: 860px) {
+    html.animations-off .projects-page .projects-main {
+        --projects-intro-height: clamp(360px, 50vh, 500px);
+    }
+
+    html.animations-off .home-page .ambition-showcase {
+        min-height: max(680px, calc(100svh - 96px));
+    }
+
+    html.animations-off .home-page .ambition-showcase__link {
+        transform: translateY(-112px);
+    }
+
+    html.animations-off .home-page .ambition-showcase__link:hover,
+    html.animations-off .home-page .ambition-showcase__link:focus-visible {
+        transform: translateY(-112px) scale(1.04);
+    }
+
+    html.animations-off .home-page .ambition-showcase__description,
+    html.animations-off .home-page .ambition-showcase:hover .ambition-showcase__description,
+    html.animations-off .home-page .ambition-showcase:focus-within .ambition-showcase__description {
+        transform: translate(-50%, 8px);
     }
 }

@@ -14,6 +14,41 @@ const compactNavigationQuery = window.matchMedia("(max-width: 860px)");
 const verticalLayoutQuery = window.matchMedia("(max-width: 860px), (orientation: portrait)");
 const documentRoot = document.documentElement;
 const isProjectPage = document.body.classList.contains("projects-page") || document.body.classList.contains("project-detail-page");
+const isProjectDetailPage = document.body.classList.contains("project-detail-page");
+const animationSwitch = document.querySelector("[data-animation-switch]");
+const animationsOff = () => !isProjectDetailPage && documentRoot.classList.contains("animations-off");
+const prefersLessMotion = () => reducedMotionQuery.matches || animationsOff();
+
+if (animationSwitch) {
+    animationSwitch.checked = !documentRoot.classList.contains("animations-off");
+    animationSwitch.addEventListener("change", () => {
+        documentRoot.classList.toggle("animations-off", !animationSwitch.checked);
+        try {
+            localStorage.setItem("purgateam-animations", animationSwitch.checked ? "on" : "off");
+        } catch {
+            // The switch still works for this page if storage is unavailable.
+        }
+
+        if (animationsOff()) {
+            document.body.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
+            documentRoot.classList.remove("page-transition-arriving", "page-transition-leaving");
+            homeFeed?.classList.add("is-revealed");
+            teamSection?.classList.add("is-revealed");
+            teamSelectionClones.forEach((clone) => clone.remove());
+            teamSelectionClones = [];
+            teamSelectionAnimations = [];
+            teamStageVisualLayer?.style.removeProperty("z-index");
+            isTeamMemberAnimating = false;
+            homeFeed?.style.removeProperty("--checker-parallax");
+            newsletterArchive?.style.removeProperty("--newsletter-checker-parallax");
+            teamStageTexture?.style.removeProperty("--team-checker-shift-x");
+            teamStageTexture?.style.removeProperty("--team-checker-shift-y");
+        }
+
+        updateHeaderVisibility();
+        updateProjectsParallax();
+    });
+}
 
 if (isProjectPage) {
     if ("scrollRestoration" in window.history) {
@@ -58,6 +93,11 @@ document.querySelectorAll(".secondary-header__socials a").forEach((socialLink) =
     socialLink.insertBefore(shadowIcon, baseIcon);
     socialLink.classList.add("has-layered-social-shadow");
 });
+
+if (documentRoot.classList.contains("animations-off")) {
+    window.name = "";
+    documentRoot.classList.remove("page-transition-arriving");
+}
 
 if (documentRoot.classList.contains("page-transition-arriving")) {
     if (window.name === "purgateam-page-transition") {
@@ -121,6 +161,11 @@ document.querySelectorAll("[data-site-transition]").forEach((link) => {
             return;
         }
 
+        if (documentRoot.classList.contains("animations-off")) {
+            window.name = "";
+            return;
+        }
+
         event.preventDefault();
         pageTransitionRunning = true;
         closePrimaryNavigation();
@@ -129,7 +174,7 @@ document.querySelectorAll("[data-site-transition]").forEach((link) => {
 
         const destination = link.href;
         const startingScroll = window.scrollY;
-        const transitionDuration = reducedMotionQuery.matches ? 0 : 900;
+        const transitionDuration = prefersLessMotion() ? 0 : 900;
         const transitionStart = performance.now();
 
         const finishTransition = () => {
@@ -137,7 +182,7 @@ document.querySelectorAll("[data-site-transition]").forEach((link) => {
             window.name = "purgateam-page-transition";
             window.setTimeout(() => {
                 window.location.href = destination;
-            }, reducedMotionQuery.matches ? 0 : 120);
+            }, prefersLessMotion() ? 0 : 120);
         };
 
         if (!transitionDuration) {
@@ -183,11 +228,19 @@ if (homeFeed && window.scrollY > feedRevealPoint) {
     homeFeed.classList.add("is-revealed");
 }
 
-if (window.scrollY > homeTopExitPoint) {
+if (!animationsOff() && window.scrollY > homeTopExitPoint) {
     document.body.classList.remove("home-at-top");
 }
 
 function updateHomeFeedEffects(currentScrollPosition) {
+    if (animationsOff() && homeFeed) {
+        document.body.classList.remove("home-at-top", "mobile-ambition-expanded");
+        homeFeed.classList.add("is-revealed");
+        teamSection?.classList.add("is-revealed");
+        homeFeed.style.removeProperty("--checker-parallax");
+        return;
+    }
+
     if (verticalLayoutQuery.matches && homeFeed) {
         const ambitionExpandPoint = 28;
         const ambitionCollapsePoint = 260;
@@ -205,7 +258,7 @@ function updateHomeFeedEffects(currentScrollPosition) {
             homeFeed.classList.remove("is-revealed");
         }
 
-        if (reducedMotionQuery.matches) {
+        if (prefersLessMotion()) {
             homeFeed.style.removeProperty("--checker-parallax");
             return;
         }
@@ -235,7 +288,7 @@ function updateHomeFeedEffects(currentScrollPosition) {
         homeFeed.classList.remove("is-revealed");
     }
 
-    if (reducedMotionQuery.matches) {
+    if (prefersLessMotion()) {
         homeFeed.style.removeProperty("--checker-parallax");
         return;
     }
@@ -251,7 +304,7 @@ function updateNewsletterArchiveEffects(currentScrollPosition) {
         return;
     }
 
-    if (reducedMotionQuery.matches) {
+    if (prefersLessMotion()) {
         newsletterArchive.style.removeProperty("--newsletter-checker-parallax");
         return;
     }
@@ -547,7 +600,7 @@ function initializeNewsletterCarousel() {
         const featuredIndex = Math.max(0, newsletterCards.findIndex((card) => card.classList.contains("is-featured")));
         const targetIndex = Math.min(newsletterCards.length - 1, Math.max(0, featuredIndex + direction));
 
-        centerNewsletterCard(newsletterCards[targetIndex], reducedMotionQuery.matches ? "auto" : "smooth");
+        centerNewsletterCard(newsletterCards[targetIndex], prefersLessMotion() ? "auto" : "smooth");
     };
 
     newsletterPreviousButton.addEventListener("click", () => moveNewsletterCarousel(-1));
@@ -620,7 +673,7 @@ function updateTeamSectionReveal(currentScrollPosition) {
         return;
     }
 
-    if (reducedMotionQuery.matches || !homeFeed) {
+    if (prefersLessMotion() || !homeFeed) {
         teamSection.classList.add("is-revealed");
         return;
     }
@@ -641,7 +694,7 @@ if (teamStage && teamStageTexture) {
     let targetCheckerY = checkerY;
 
     const animateTeamChecker = () => {
-        const smoothing = reducedMotionQuery.matches ? 1 : 0.14;
+        const smoothing = prefersLessMotion() ? 1 : 0.14;
         const bounds = teamStage.getBoundingClientRect();
 
         checkerX += (targetCheckerX - checkerX) * smoothing;
@@ -649,8 +702,8 @@ if (teamStage && teamStageTexture) {
 
         teamStageTexture.style.setProperty("--team-checker-x", `${checkerX * bounds.width + 28}px`);
         teamStageTexture.style.setProperty("--team-checker-y", `${checkerY * bounds.height + 28}px`);
-        teamStageTexture.style.setProperty("--team-checker-shift-x", reducedMotionQuery.matches ? "0px" : `${(checkerX - 0.5) * 22}px`);
-        teamStageTexture.style.setProperty("--team-checker-shift-y", reducedMotionQuery.matches ? "0px" : `${(checkerY - 0.5) * 18}px`);
+        teamStageTexture.style.setProperty("--team-checker-shift-x", prefersLessMotion() ? "0px" : `${(checkerX - 0.5) * 22}px`);
+        teamStageTexture.style.setProperty("--team-checker-shift-y", prefersLessMotion() ? "0px" : `${(checkerY - 0.5) * 18}px`);
 
         if (Math.abs(targetCheckerX - checkerX) > 0.002 || Math.abs(targetCheckerY - checkerY) > 0.002) {
             checkerFrame = window.requestAnimationFrame(animateTeamChecker);
@@ -666,6 +719,7 @@ if (teamStage && teamStageTexture) {
     };
 
     teamStage.addEventListener("pointermove", (event) => {
+        if (animationsOff()) return;
         const bounds = teamStage.getBoundingClientRect();
         targetCheckerX = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
         targetCheckerY = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
@@ -763,7 +817,7 @@ async function selectTeamMember(member) {
 
     const swapMember = () => updateTeamStage(member);
 
-    if (reducedMotionQuery.matches || typeof teamStageContent.animate !== "function") {
+    if (prefersLessMotion() || typeof teamStageContent.animate !== "function") {
         swapMember();
         isTeamMemberAnimating = false;
         return;
@@ -897,6 +951,11 @@ function updatePageSecondaryHeader(currentScrollPosition) {
         return;
     }
 
+    if (animationsOff() && (homeFeed || document.body.classList.contains("projects-page"))) {
+        pageSecondaryHeader.classList.remove("is-content-hidden");
+        return;
+    }
+
     if (currentScrollPosition > 64) {
         pageSecondaryHeader.classList.add("is-content-hidden");
     } else if (currentScrollPosition < 20) {
@@ -970,7 +1029,7 @@ screenshotSources.forEach((source) => {
     screenshot.src = source;
 });
 
-if (showcaseBackgrounds.length === 2 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+if (showcaseBackgrounds.length === 2 && !reducedMotionQuery.matches) {
     let activeBackgroundIndex = 0;
     let activeScreenshotIndex = 0;
     let transitionInProgress = false;
@@ -994,7 +1053,10 @@ if (showcaseBackgrounds.length === 2 && !window.matchMedia("(prefers-reduced-mot
 
         currentBackground.classList.add("is-extra-blurred");
         nextBackground.classList.add("is-extra-blurred");
-        nextBackground.classList.add("is-active", "is-zooming");
+        nextBackground.classList.add("is-active");
+        if (!animationsOff()) {
+            nextBackground.classList.add("is-zooming");
+        }
         currentBackground.classList.remove("is-active");
 
         window.setTimeout(() => {
@@ -1121,7 +1183,7 @@ if (projectsIntro && projectsTitle) {
     };
 
     document.addEventListener("pointermove", (event) => {
-        if (event.pointerType === "touch" || verticalLayoutQuery.matches) {
+        if (animationsOff() || event.pointerType === "touch" || verticalLayoutQuery.matches) {
             return;
         }
 
@@ -1137,6 +1199,41 @@ if (projectsIntro && projectsTitle) {
 
 function updateProjectsParallax() {
     if (!projectsIntroChecker || !projectsMain) {
+        return;
+    }
+
+    if (animationsOff()) {
+        if (projectsAutoCenterFrame) {
+            window.cancelAnimationFrame(projectsAutoCenterFrame);
+            projectsAutoCenterFrame = 0;
+        }
+        projectsAutoCentered = false;
+        projectsFocusStart = null;
+        projectsFocusEnd = null;
+        projectsMain.style.removeProperty("--checker-parallax");
+        projectsMain.style.removeProperty("--projects-scroll-parallax");
+        projectsMain.style.removeProperty("--projects-intro-live-height");
+        projectsMain.style.removeProperty("--projects-intro-height");
+        projectsMain.style.removeProperty("--projects-reveal-progress");
+        projectsMain.style.removeProperty("--projects-focus-shift");
+        projectsMain.style.removeProperty("--projects-title-opacity");
+        projectsMain.style.removeProperty("--projects-title-scale");
+        projectsMain.style.removeProperty("--projects-pattern-opacity");
+        projectsMain.style.removeProperty("--projects-focus-overlay");
+        projectsMain.style.removeProperty("--projects-list-parallax");
+        document.body.classList.remove("projects-list-visible");
+        if (projectsHeaderHidden) {
+            projectsHeaderHidden = false;
+            releasePrimaryHeaderVisibilityLock();
+        }
+        projectsTitle?.style.removeProperty("--project-title-accent-scale");
+        projectsTitle?.style.removeProperty("--project-title-accent-glow");
+        projectsTitle?.querySelectorAll(".project-title__letter").forEach((letter) => {
+            letter.style.removeProperty("--project-letter-scale");
+            letter.style.removeProperty("--project-letter-lift");
+            letter.style.removeProperty("--project-letter-glow-size");
+            letter.style.removeProperty("--project-letter-glow-opacity");
+        });
         return;
     }
 
@@ -1344,7 +1441,7 @@ if (projectFilterButtons.length && projectFilterPanels.length && projectFilterVi
         projectFilterViewport.scrollTo({
             left: 0,
             top: 0,
-            behavior: shouldAnimate && !reducedMotionQuery.matches ? "smooth" : "auto"
+            behavior: shouldAnimate && !prefersLessMotion() ? "smooth" : "auto"
         });
 
         window.requestAnimationFrame(() => {
@@ -1361,7 +1458,7 @@ if (projectFilterButtons.length && projectFilterPanels.length && projectFilterVi
             return;
         }
 
-        if (reducedMotionQuery.matches || typeof projectFilterViewport.animate !== "function") {
+        if (prefersLessMotion() || typeof projectFilterViewport.animate !== "function") {
             applyProjectFilter(filterName, false);
             return;
         }
